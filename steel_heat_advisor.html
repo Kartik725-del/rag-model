@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HeatMind — RAG Heat Plan Advisor · Plant 738</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07080a;--bg2:#0e1014;--bg3:#141720;--bg4:#1c2030;
+  --border:#232840;--border2:#2e3550;
+  --text:#dde3f0;--text2:#8892aa;--text3:#4a5270;
+  --accent:#ff6b2b;--accent2:#ff9060;--accentglow:rgba(255,107,43,.2);
+  --steel:#4a90d9;--steel2:#7ab5ee;
+  --red:#e03535;--red-bg:rgba(224,53,53,.12);
+  --amber:#e89020;--amber-bg:rgba(232,144,32,.12);
+  --green:#28b870;--green-bg:rgba(40,184,112,.12);
+  --blue:#3a90e0;--blue-bg:rgba(58,144,224,.12);
+  --slate:#667799;--slate-bg:rgba(102,119,153,.12);
+  --font-head:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'Syne Mono',monospace;
+  --r:8px;--r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:13px;line-height:1.55;overflow:hidden}
+button{cursor:pointer;font-family:var(--font-body)}
+select,input{font-family:var(--font-body)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.shell{display:grid;grid-template-rows:56px 1fr;grid-template-columns:256px 1fr minmax(220px,380px);height:100vh;min-width:320px;overflow:hidden}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;animation:slideDown .4s ease;position:relative}
+.rag-title{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text3);white-space:nowrap}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.logo{font-family:var(--font-head);font-weight:800;font-size:21px;letter-spacing:-.5px;color:var(--text)}
+.logo span{color:var(--accent)}
+.plant-tag{font-family:var(--font-mono);font-size:10px;color:var(--steel2);background:var(--blue-bg);border:1px solid rgba(74,144,217,.3);border-radius:20px;padding:3px 12px;letter-spacing:.5px}
+.tb-div{width:1px;height:24px;background:var(--border);margin:0 4px}
+.kpis{display:flex;gap:0;margin-left:auto}
+.kpi{padding:0 16px;border-left:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.kpi-v{font-family:var(--font-mono);font-size:14px;font-weight:500;line-height:1.1}
+.kpi-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.kpi.red .kpi-v{color:var(--red)}.kpi.amber .kpi-v{color:var(--amber)}.kpi.green .kpi-v{color:var(--green)}
+.live{display:flex;align-items:center;gap:7px;padding-left:16px;border-left:1px solid var(--border)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(40,184,112,.2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(40,184,112,.2)}50%{box-shadow:0 0 0 6px rgba(40,184,112,.04)}}
+.live-lbl{font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;animation:slideLeft .4s ease}
+@keyframes slideLeft{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+.sb-s{padding:14px 16px;border-bottom:1px solid var(--border)}
+.sb-t{font-family:var(--font-head);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sb-t::after{content:'';flex:1;height:1px;background:var(--border)}
+.fg{margin-bottom:10px}
+.fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+select,.fi{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:var(--r);font-size:12px;outline:none;appearance:none;transition:border-color .15s}
+select:focus,.fi:focus{border-color:var(--accent)}
+select option{background:var(--bg3)}
+.wrange{display:flex;gap:6px}
+.buf-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.buf-btn{padding:6px 4px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:var(--font-mono);font-size:10px;text-align:center;cursor:pointer;transition:all .15s}
+.buf-btn.on-R{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.buf-btn.on-B{background:var(--slate-bg);border-color:var(--slate);color:var(--slate)}
+.buf-btn.on-Y{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
+.buf-btn.on-I{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.buf-btn.on-G{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px}
+.mc-v{font-family:var(--font-mono);font-size:16px;font-weight:500;line-height:1.1}
+.mc-l{font-size:9px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.mc.red .mc-v{color:var(--red)}.mc.amber .mc-v{color:var(--amber)}.mc.steel .mc-v{color:var(--steel2)}
+.db-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;margin-bottom:6px}
+.db-card.active{border-color:var(--accent);background:var(--accentglow)}
+.db-name{font-family:var(--font-mono);font-size:11px;font-weight:500}
+.db-card.active .db-name{color:var(--accent2)}
+.db-card:not(.active) .db-name{color:var(--text2)}
+.db-desc{font-size:10px;color:var(--text3);margin-top:2px}
+.db-badge{display:inline-block;background:var(--accentglow);border:1px solid var(--accent);color:var(--accent2);border-radius:3px;padding:1px 5px;font-size:9px;margin-left:6px}
+
+/* CENTRE */
+.centre{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);background:var(--bg);animation:fadeIn .5s ease .1s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.q-area{padding:16px 18px 12px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.q-lbl{font-family:var(--font-head);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:9px}
+.q-row{display:flex;gap:9px;margin-bottom:9px}
+.q-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:var(--r);font-size:13px;outline:none;transition:border-color .2s}
+.q-input:focus{border-color:var(--accent)}
+.q-input::placeholder{color:var(--text3)}
+.ask-btn{background:var(--accent);color:#fff;border:none;padding:0 20px;border-radius:var(--r);font-family:var(--font-head);font-weight:700;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:background .15s,transform .1s}
+.ask-btn:hover{background:var(--accent2)}
+.ask-btn:active{transform:scale(.97)}
+.ask-btn.busy{background:var(--bg4);color:var(--amber);border:1px solid rgba(232,144,32,.3);cursor:default}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.preset{background:var(--bg3);border:1px solid var(--border2);color:var(--text3);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.preset:hover{border-color:var(--accent);color:var(--accent);background:var(--accentglow)}
+.o-hdr{padding:9px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.pill{background:var(--bg4);border:1px solid var(--border2);border-radius:12px;padding:2px 9px;font-family:var(--font-mono);font-size:10px;color:var(--text2)}
+.o-list{flex:1;overflow-y:auto}
+.oc{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
+.oc:hover{background:var(--bg3)}
+.oc.sel{background:var(--bg3);border-left:2px solid var(--accent);padding-left:14px}
+.oc-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.oc-id{font-family:var(--font-mono);font-size:10px;color:var(--steel2)}
+.bt{font-family:var(--font-mono);font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;letter-spacing:.4px}
+.bR{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,53,53,.25)}
+.bG{background:var(--green-bg);color:var(--green);border:1px solid rgba(40,184,112,.25)}
+.bY{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,144,32,.25)}
+.bB{background:var(--slate-bg);color:var(--slate);border:1px solid rgba(102,119,153,.25)}
+.bI{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(58,144,224,.25)}
+.st{font-size:9px;padding:2px 6px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.oc-mass{margin-left:auto;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--accent2)}
+.oc-grade{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--text)}
+.oc-dims{font-family:var(--font-mono);font-size:10px;color:var(--text2);margin-left:6px}
+.oc-bot{display:flex;align-items:center;gap:7px;margin-top:6px}
+.oc-route{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);border:1px solid var(--border);color:var(--text3)}
+.oc-week{font-family:var(--font-mono);font-size:10px;color:var(--text3)}
+.no-orders{padding:40px;text-align:center;color:var(--text3);font-size:12px}
+
+/* ADVISOR */
+.advisor{background:var(--bg);display:flex;flex-direction:column;min-width:220px;max-width:380px;width:100%;overflow:hidden;animation:slideRight .4s ease .15s both}
+@keyframes slideRight{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:180px 1fr 180px}
+  .advisor{min-width:120px;max-width:220px}
+}
+@media(max-width:600px){
+  .shell{grid-template-columns:1fr;grid-template-rows:56px 1fr 220px;grid-template-areas:"topbar""centre""advisor"}
+  .sidebar{display:none}
+  .advisor{grid-area:advisor;min-width:0;max-width:100vw;width:100vw;height:220px;position:fixed;bottom:0;left:0;right:0;z-index:10;border-top:2px solid var(--border);border-right:none;border-left:none;border-bottom:none;box-shadow:0 -2px 12px rgba(0,0,0,.2)}
+  .centre{border-right:none}
+}
+
+.adv-hdr{padding:9px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.adv-scroll{flex:1;overflow-y:auto;;overflow-x:hidden;padding:14px;display:flex;flex-direction:column;min-height:0;scroll-behavior:smooth;gap:12px}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;text-align:center}
+.empty-icon{width:60px;height:60px;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.empty-t{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--text2)}
+.empty-s{font-size:12px;color:var(--text3);max-width:200px;line-height:1.6}
+.rblock{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;flex-shrink:0;animation:fadeSlide .3s ease}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.rh{padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.dot{width:7px;height:7px;border-radius:50%}
+.dg{background:var(--green);box-shadow:0 0 6px var(--green)}
+.da{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.db2{background:var(--steel);box-shadow:0 0 6px var(--steel)}
+.answer-block{padding:14px;font-size:12px;color:var(--text2);word-break:break-word;overflow-wrap:break-word;line-height:1.9;white-space:pre-wrap;font-family:var(--font-mono)}
+.answer-block strong,.answer-block h2,.answer-block h3{color:var(--accent2);font-family:var(--font-head);font-size:13px}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);animation:dotB 1.2s infinite;margin-right:4px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotB{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
+.export-btn{margin:0 14px 14px;padding:10px;background:var(--bg3);border:1px dashed var(--border2);border-radius:var(--r);color:var(--text3);font-size:12px;width:calc(100% - 28px);text-align:center;cursor:pointer;transition:all .2s}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accentglow)}
+.err-box{margin:14px;padding:12px;background:var(--red-bg);border:1px solid rgba(224,53,53,.3);border-radius:var(--r);font-size:12px;color:var(--red)}
+
+/* CSV UPLOAD WIDGET */
+.csv-drop{border:1px dashed var(--border2);border-radius:var(--r);padding:12px 10px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);position:relative}
+.csv-drop:hover,.csv-drop.over{border-color:var(--accent);background:var(--accentglow)}
+.csv-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.csv-drop-icon{font-size:18px;margin-bottom:4px}
+.csv-drop-lbl{font-size:11px;color:var(--text3);line-height:1.4}
+.csv-drop-lbl strong{color:var(--accent2);font-weight:500}
+.csv-status{margin-top:8px;padding:7px 10px;border-radius:6px;font-size:11px;display:none;align-items:center;gap:8px}
+.csv-status.running{display:flex;background:var(--amber-bg);border:1px solid rgba(232,144,32,.25);color:var(--amber)}
+.csv-status.done{display:flex;background:var(--green-bg);border:1px solid rgba(40,184,112,.25);color:var(--green)}
+.csv-status.error{display:flex;background:var(--red-bg);border:1px solid rgba(224,53,53,.25);color:var(--red)}
+.csv-prog{flex:1}
+.csv-spinner{width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo"><img src="/logo.png" style="height:60px;vertical-align:middle;"></div>
+  <div class="tb-div"></div>
+  <div class="kpis">
+    <div class="kpi green" id="kpi-open"><div class="kpi-v">—</div><div class="kpi-l">Open orders</div></div>
+    <div class="kpi amber"><div class="kpi-v" id="kv-unsched">—</div><div class="kpi-l">Unscheduled MT</div></div>
+    <div class="kpi red"><div class="kpi-v" id="kv-red">—</div><div class="kpi-l">Red buffer</div></div>
+    <div class="kpi"><div class="kpi-v" id="kv-total">—</div><div class="kpi-l">Total indexed</div></div>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-s">
+    <div class="sb-t">Order filters</div>
+    <div class="fg"><div class="fl">Steel type</div>
+      <select id="f-steel" onchange="loadOrders()">
+        <option value="">All types</option>
+        <option value="L" selected>L — Low carbon</option>
+        <option value="A">A — Alloy</option>
+        <option value="P">P — Pipeline</option>
+        <option value="H">H — High strength</option>
+        <option value="I">I — IF steel</option>
+        <option value="S">S — Special</option>
+        <option value="M">M — Medium carbon</option>
+      </select>
+    </div>
+    <div class="fg"><div class="fl">Production route</div>
+      <select id="f-route" onchange="loadOrders()">
+        <option value="">All routes</option>
+        <option value="HR_DOM" selected>HR_DOM</option>
+        <option value="SCRM">SCRM</option>
+        <option value="ACRM_SLIT">ACRM_SLIT</option>
+        <option value="KCRM">KCRM</option>
+        <option value="TUBE">TUBE</option>
+        <option value="SCRM_SPC_SLIT">SCRM_SPC_SLIT</option>
+      </select>
+    </div>
+    <div class="fg"><div class="fl">Order status</div>
+      <select id="f-status" onchange="loadOrders()">
+        <option value="">All</option>
+        <option value="F">F — Firm</option>
+        <option value="O" selected>O — Open</option>
+        <option value="T">T — Temporary</option>
+      </select>
+    </div>
+    <div class="fg"><div class="fl">Width range (mm)</div>
+      <div class="wrange">
+        <input class="fi" id="f-wmin" type="number" placeholder="Min" value="925" oninput="loadOrders()"/>
+        <input class="fi" id="f-wmax" type="number" placeholder="Max" value="1680" oninput="loadOrders()"/>
+      </div>
+    </div>
+    <div class="fg"><div class="fl">Buffer indicator</div>
+      <div class="buf-grid">
+        <button class="buf-btn on-R" data-buf="R" onclick="toggleBuf(this)">● RED</button>
+        <button class="buf-btn on-B" data-buf="B" onclick="toggleBuf(this)">● BLACK</button>
+        <button class="buf-btn" data-buf="Y" onclick="toggleBuf(this)">● YELLOW</button>
+        <button class="buf-btn" data-buf="I" onclick="toggleBuf(this)">● INFO</button>
+        <button class="buf-btn" data-buf="G" onclick="toggleBuf(this)">● GREEN</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-s">
+    <div class="sb-t">Upload dataset</div>
+    <div class="csv-drop" id="csv-drop"
+         ondragover="csvDragOver(event)" ondragleave="csvDragLeave(event)" ondrop="csvDrop(event)">
+      <input type="file" accept=".csv" id="csv-file-input" onchange="csvFileChosen(event)"/>
+      <div class="csv-drop-icon">📂</div>
+      <div class="csv-drop-lbl">Drop a <strong>.csv</strong> or click to browse.<br>Replaces the current dataset.</div>
+    </div>
+    <div class="csv-status" id="csv-status">
+      <div class="csv-spinner" id="csv-spinner"></div>
+      <div class="csv-prog" id="csv-prog-text">Starting…</div>
+    </div>
+  </div>
+</aside>
+
+<!-- CENTRE -->
+<main class="centre">
+  <div class="q-area">
+    <div class="q-lbl">Ask the heat plan advisor</div>
+    <div class="q-row">
+      <input class="q-input" id="q-input" type="text"
+        value="Which open L-grade HR_DOM orders should go into the next heat? Prioritise Red buffer and target 250 MT."
+        placeholder="Which open L-grade HR_DOM orders should go into the next heat?"/>
+      <button class="ask-btn" id="ask-btn" onclick="runQuery()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Analyse
+      </button>
+    </div>
+    <div class="presets">
+      <div class="preset" onclick="useP(this)">Best 250 MT heat for SCRM</div>
+      <div class="preset" onclick="useP(this)">All Red buffer TUBE orders</div>
+      <div class="preset" onclick="useP(this)">Grade T01576 ready to roll</div>
+      <div class="preset" onclick="useP(this)">Unscheduled firm orders this week</div>
+    </div>
+  </div>
+
+  <div class="o-hdr">
+    Retrieved orders
+    <span class="pill" id="o-count">—</span>
+    <span style="margin-left:auto;font-size:9px;color:var(--text3)">Click to select / deselect</span>
+  </div>
+  <div class="o-list" id="o-list">
+    <div class="no-orders">Loading orders…</div>
+  </div>
+</main>
+
+<!-- ADVISOR -->
+<aside class="advisor">
+  <div class="adv-hdr">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+    RAG Advisor Response
+    <span class="pill" id="r-pill" style="color:var(--amber)">ready</span>
+  </div>
+  <div class="adv-scroll" id="adv-scroll">
+    <div class="empty" id="empty">
+      <div class="empty-icon">⬡</div>
+      <div class="empty-t">Heat Plan Advisor</div>
+      <div class="empty-s">Type a query or pick a preset. The RAG pipeline will retrieve similar orders and generate a heat recommendation.</div>
+    </div>
+  </div>
+  <button id="export-btn" class="export-btn" onclick="doExport()" style="display:none;">
+    ↓ Export proposed heat as CSV
+  </button>
+</aside>
+
+</div>
+<script>
+const API = '';
+const BL  = {R:'RED',G:'GRN',Y:'YLW',B:'BLK',I:'INF'};
+const SL  = {F:'FIRM',O:'OPEN',T:'TEMP'};
+
+let activeBufs = new Set(['R','B']);
+let selIds     = new Set();
+let evtSource  = null;
+
+function getFilters(){
+  return {
+    steel_type: document.getElementById('f-steel').value  || null,
+    route:      document.getElementById('f-route').value  || null,
+    status:     document.getElementById('f-status').value || null,
+    buffer:     activeBufs.size === 1 ? [...activeBufs][0] : null,
+    width_min:  parseFloat(document.getElementById('f-wmin').value) || null,
+    width_max:  parseFloat(document.getElementById('f-wmax').value) || null,
+    top_k:      50,
+  };
+}
+
+function toggleBuf(btn){
+  const b = btn.dataset.buf;
+  if(activeBufs.has(b)){ activeBufs.delete(b); btn.className = 'buf-btn'; }
+  else{ activeBufs.add(b); btn.className = `buf-btn on-${b}`; }
+  loadOrders();
+}
+
+async function loadOrders(){
+  try{
+    const resp = await fetch(`${API}/api/orders`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(getFilters()),
+    });
+    const data = await resp.json();
+    renderOrders(data.orders || []);
+    document.getElementById('o-count').textContent = data.count ?? 0;
+  } catch(e){
+    document.getElementById('o-list').innerHTML =
+      `<div class="no-orders" style="color:var(--red)">Failed to load orders.<br>Is the server running?</div>`;
+  }
+}
+
+function renderOrders(orders){
+  const el = document.getElementById('o-list');
+  if(!orders.length){ el.innerHTML = '<div class="no-orders">No orders match current filters.</div>'; return; }
+  el.innerHTML = '';
+  orders.forEach(item => {
+    const m   = item.metadata || {};
+    const sel = selIds.has(m.order_id);
+    const d   = document.createElement('div');
+    d.className  = 'oc' + (sel ? ' sel' : '');
+    d.dataset.id = m.order_id;
+    d.onclick = () => { selIds.has(m.order_id) ? selIds.delete(m.order_id) : selIds.add(m.order_id); d.classList.toggle('sel'); };
+    d.innerHTML = `
+      <div class="oc-top">
+        <span class="oc-id">${m.order_id || '—'}</span>
+        <span class="bt b${m.buffer}">${BL[m.buffer] || m.buffer || '?'}</span>
+        <span class="st">${SL[m.status] || m.status || '?'}</span>
+        <span class="oc-mass">${parseFloat(m.mass||0).toFixed(0)} MT</span>
+      </div>
+      <div style="display:flex;align-items:baseline">
+        <span class="oc-grade">${m.grade || '—'}</span>
+        <span class="oc-dims">&nbsp;·&nbsp;${m.width}×${m.thickness} mm&nbsp;·&nbsp;${m.steel_type}</span>
+      </div>
+      <div class="oc-bot">
+        <span class="oc-route">${m.route || '—'}</span>
+        <span class="oc-week">Wk ${m.week || '—'}</span>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function runQuery(){
+  const btn   = document.getElementById('ask-btn');
+  const pill  = document.getElementById('r-pill');
+  const query = document.getElementById('q-input').value.trim();
+  if(!query || btn.classList.contains('busy')) return;
+
+  if(evtSource){ evtSource.close(); evtSource = null; }
+
+  btn.classList.add('busy');
+  btn.innerHTML = `<div class="dots"><span></span><span></span><span></span></div>Analysing`;
+  pill.textContent = 'thinking…';
+  pill.style.color = 'var(--amber)';
+  document.getElementById('export-btn').style.display = 'none';
+
+  const scroll = document.getElementById('adv-scroll');
+  scroll.innerHTML = `
+    <div class="rblock">
+      <div class="rh"><div class="dot da"></div>Querying vector database…</div>
+      <div style="padding:14px;font-size:12px;color:var(--text3);font-family:var(--font-mono);display:flex;align-items:center;gap:10px">
+        <div class="dots"><span></span><span></span><span></span></div>Retrieving semantically similar orders
+      </div>
+    </div>`;
+
+  const filters = getFilters();
+
+  fetch(`${API}/api/query/stream`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      query,
+      steel_type: filters.steel_type,
+      route:      filters.route,
+      status:     filters.status,
+      buffer:     filters.buffer,
+      top_k:      15,
+    }),
+  }).then(resp => {
+    const reader = resp.body.getReader();
+    const dec    = new TextDecoder();
+    let answerEl   = null;
+    let answerText = '';
+    let buffer     = '';
+    scroll.innerHTML = '';
+
+    function processEvent(raw) {
+      raw = raw.trim();
+      if(!raw.startsWith('data:')) return;
+      const payload = raw.replace(/^data:\s*/,'').trim();
+      if(payload === '[DONE]'){ onDone(); return; }
+      let msg;
+      try{ msg = JSON.parse(payload); } catch{ return; }
+
+      if(msg.type === 'retrieved'){
+        const orders = msg.orders || [];
+        renderOrders(orders);
+        document.getElementById('o-count').textContent = orders.length;
+        selIds = new Set(orders.map(o => o.metadata?.order_id).filter(Boolean));
+        document.querySelectorAll('.oc').forEach(el => {
+          if(selIds.has(el.dataset.id)) el.classList.add('sel');
+        });
+        const block = document.createElement('div');
+        block.className = 'rblock';
+        block.innerHTML = `
+          <div class="rh"><div class="dot dg"></div>RAG Advisor — ${orders.length} orders retrieved</div>
+          <div class="answer-block" id="answer-text"></div>`;
+        scroll.appendChild(block);
+        answerEl = document.getElementById('answer-text');
+
+      } else if(msg.type === 'answer_chunk'){
+        if(!answerEl){
+          const block = document.createElement('div');
+          block.className = 'rblock';
+          block.innerHTML = `
+            <div class="rh"><div class="dot dg"></div>RAG Advisor</div>
+            <div class="answer-block" id="answer-text"></div>`;
+          scroll.appendChild(block);
+          answerEl = document.getElementById('answer-text');
+        }
+        answerText += msg.text;
+        answerEl.innerHTML = answerText
+          .replace(/## (.*)/g, '<strong>$1</strong>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        scroll.scrollTop = scroll.scrollHeight;
+
+      } else if(msg.type === 'error'){
+        scroll.innerHTML = `<div class="err-box">⚠ ${msg.text}</div>`;
+        onDone();
+      }
+    }
+
+    function read(){
+      reader.read().then(({done, value}) => {
+        if(done){
+          if(buffer.trim()) processEvent(buffer);
+          onDone();
+          return;
+        }
+        buffer += dec.decode(value, {stream: true});
+        const events = buffer.split('\n\n');
+        buffer = events.pop();
+        events.forEach(evt => { if(evt.trim()) processEvent(evt); });
+        read();
+      }).catch(e => {
+        scroll.innerHTML = `<div class="err-box">⚠ Stream error: ${e.message}</div>`;
+        onDone();
+      });
+    }
+    read();
+  }).catch(e => {
+    scroll.innerHTML = `<div class="err-box">⚠ Could not reach server: ${e.message}<br>Make sure uvicorn is running on port 8000.</div>`;
+    onDone();
+  });
+}
+
+function onDone(){
+  const btn  = document.getElementById('ask-btn');
+  const pill = document.getElementById('r-pill');
+  pill.textContent = 'done';
+  pill.style.color = 'var(--green)';
+  btn.classList.remove('busy');
+  btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Analyse`;
+  document.getElementById('export-btn').style.display = 'block';
+}
+
+function doExport(){
+  window.location.href = `${API}/api/export?heat_id=HEAT-EXPORT`;
+}
+
+function useP(el){
+  document.getElementById('q-input').value = el.textContent.trim();
+}
+
+async function loadStats(){
+  try{
+    const [h, s] = await Promise.all([
+      fetch(`${API}/health`).then(r=>r.json()),
+      fetch(`${API}/api/stats`).then(r=>r.json()),
+    ]);
+    document.getElementById('kpi-open').querySelector('.kpi-v').textContent =
+      (s.status_counts?.O || 0) + (s.status_counts?.F || 0);
+    document.getElementById('kv-red').textContent    = s.buffer_counts?.R || 0;
+    document.getElementById('kv-total').textContent  = h.orders_indexed ?? '—';
+    document.getElementById('kv-unsched').textContent = '351k MT';
+    document.getElementById('sc-red').textContent    = s.buffer_counts?.R || 0;
+    document.getElementById('sc-routes').textContent = Object.keys(s.top_routes || {}).length;
+    document.getElementById('sc-total').textContent  = s.total_orders ?? 0;
+    document.getElementById('sc-unsched').textContent = '70.9%';
+  } catch(e){
+    console.error('Failed to load stats:', e);
+  }
+}
+
+// ── CSV UPLOAD & INGEST ──────────────────────────────────────────────────────
+let _csvPollTimer = null;
+
+function csvDragOver(e){
+  e.preventDefault();
+  document.getElementById('csv-drop').classList.add('over');
+}
+function csvDragLeave(){
+  document.getElementById('csv-drop').classList.remove('over');
+}
+function csvDrop(e){
+  e.preventDefault();
+  document.getElementById('csv-drop').classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if(file) uploadCsv(file);
+}
+function csvFileChosen(e){
+  const file = e.target.files[0];
+  if(file) uploadCsv(file);
+  e.target.value = '';
+}
+
+async function uploadCsv(file){
+  if(!file.name.endsWith('.csv')){ setCsvStatus('error','Only .csv files are accepted.'); return; }
+  setCsvStatus('running', `Uploading ${file.name}…`);
+  const form = new FormData();
+  form.append('file', file);
+  try{
+    const resp = await fetch(`${API}/api/ingest`,{method:'POST',body:form});
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({detail:'Upload failed'}));
+      setCsvStatus('error', err.detail || 'Upload failed');
+      return;
+    }
+    setCsvStatus('running','Indexing dataset — this may take a minute…');
+    _csvPollTimer = setInterval(pollIngestStatus, 2000);
+  } catch(e){
+    setCsvStatus('error','Could not reach server: ' + e.message);
+  }
+}
+
+async function pollIngestStatus(){
+  try{
+    const data = await fetch(`${API}/api/ingest/status`).then(r=>r.json());
+    if(data.state === 'running'){
+      setCsvStatus('running', data.message || 'Indexing…');
+    } else if(data.state === 'done'){
+      clearInterval(_csvPollTimer); _csvPollTimer = null;
+      setCsvStatus('done','✓ ' + data.message);
+      loadStats();
+      loadOrders();
+    } else if(data.state === 'error'){
+      clearInterval(_csvPollTimer); _csvPollTimer = null;
+      setCsvStatus('error','✕ ' + data.message);
+    }
+  } catch(e){}
+}
+
+function setCsvStatus(state, msg){
+  const box  = document.getElementById('csv-status');
+  const spin = document.getElementById('csv-spinner');
+  const text = document.getElementById('csv-prog-text');
+  box.className      = 'csv-status ' + state;
+  spin.style.display = state === 'running' ? 'block' : 'none';
+  text.textContent   = msg;
+}
+
+loadStats();
+loadOrders();
+</script>
+</body>
+</html>
