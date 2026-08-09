@@ -506,8 +506,40 @@ function onDone(){
   document.getElementById('export-btn').style.display = 'block';
 }
 
-function doExport(){
-  window.location.href = `${API}/api/export?heat_id=HEAT-EXPORT`;
+async function doExport(){
+  if(!lastOrders.length){
+    alert('Nothing to export yet — run a query first so there is a real heat plan to export.');
+    return;
+  }
+
+  const proposedTextMatch = parseProposedOrderIds(lastAnswer);
+  let exportOrders = [];
+  if(proposedTextMatch.size){
+    const section = [...proposedTextMatch][0];
+    exportOrders = lastOrders.filter(o => o.metadata?.order_id && section.includes(o.metadata.order_id));
+  }
+  if(!exportOrders.length) exportOrders = lastOrders.filter(o => selIds.has(o.metadata?.order_id));
+  if(!exportOrders.length) exportOrders = lastOrders;
+
+  try {
+    const resp = await fetch(`${API}/api/export`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query: lastQuery, orders: exportOrders }),
+    });
+    if(!resp.ok) throw new Error(await resp.text());
+
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const cd   = resp.headers.get('Content-Disposition') || '';
+    const name = (cd.match(/filename=([^;]+)/) || [])[1] || 'heat-export.csv';
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export failed: ' + e.message);
+  }
 }
 
 function useP(el){

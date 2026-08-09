@@ -35,6 +35,10 @@ _ingest_lock = threading.Lock()
 class ExportOrder(BaseModel):
     metadata: dict
     distance: Optional[float] = None
+class ExportRequest(BaseModel):
+    heat_id: Optional[str] = None
+    query:   str = ""
+    orders:  list[ExportOrder]
 
 
 def _run_ingest_background(csv_path: str, filename: str):
@@ -239,28 +243,41 @@ async def export_heat(heat_id: str = Query(default="HEAT-EXPORT")):
         headers={"Content-Disposition": f"attachment; filename={heat_id}.csv"},
     )
 
-@app.get("/api/stats")
-async def db_stats():
-    try:
-        collection = get_collection()
-        total      = collection.count()
-        sample     = collection.get(limit=min(total, 5000), include=["metadatas"])
-        metas      = sample["metadatas"]
-
-        buffer_counts, status_counts, route_counts = {}, {}, {}
-        for m in metas:
-            buf = m.get("buffer", "?");  buffer_counts[buf] = buffer_counts.get(buf, 0) + 1
-            sta = m.get("status", "?");  status_counts[sta] = status_counts.get(sta, 0) + 1
-            rt  = m.get("route",  "?");  route_counts[rt]   = route_counts.get(rt,  0) + 1
-
-        return {
-            "total_orders":  total,
-            "buffer_counts": buffer_counts,
-            "status_counts": status_counts,
-            "top_routes":    dict(sorted(route_counts.items(), key=lambda x: -x[1])[:10]),
-        }
-    except Exception as e:
-        return JSONResponse(status_code=503, content={"error": str(e)})
+app.post("/api/export")
+async def export_heat(req: ExportRequest):
+    if not req.orders:
+        raise HTTPException(status_code=400, detail="No orders provided to export.")
+ 
+    heat_id = req.heat_id or f"HEAT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+ 
+    header = ["heat_id", "query", "order_id", "grade", "width_mm", "thick_mm",
+              "mass_mt", "buffer", "status", "route", "steel_type", "week", "similarity_pct"]
+    rows = [header]
+ 
+    for o in req.orders:
+        m   = o.metadata or {}
+        sim = f"{(1 - o.distance) * 100:.1f}" if o.distance is not None else ""
+        rows.append([
+            heat_id, req.query, m.get("order_id", ""), m.get("grade", ""),
+            m.get("width", ""), m.get("thickness", ""), m.get("mass", ""),
+            m.get("buffer", ""), m.get("status", ""), m.get("route", ""),
+            m.get("steel_type", ""), m.get("week", ""), sim,
+        ])
+ 
+    def csv_escape(v):
+        v = str(v)
+        return '"' + v.replace('"', '""') + '"' if any(c in v for c in [",", '"', "\n"]) else v
+ 
+    csv_text = "\n".join(",".join(csv_escape(c) for c in row) for row in rows)
+ 
+    # Basic audit trail — swap for a DB row / log file if you need persistence.
+    print(f"[EXPORT] {heat_id} — {len(req.orders)} orders — query: {req.query!r}")
+ 
+    return StreamingResponse(
+        io.StringIO(csv_text),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={heat_id}.csv"},
+    )
 
 @app.get("/logo.png")
 async def serve_logo():
