@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from predictor import predict, predict_stream, retrieve_orders, get_collection
 from ingest import build_index
+from datetime import datetime, timezone
 # ── INGESTION STATE ───────────────────────────────────────────────────────────
 _ingest_status: dict = {
     "state":    "idle",
@@ -30,6 +31,10 @@ _ingest_status: dict = {
     "filename": "",
 }
 _ingest_lock = threading.Lock()
+
+class ExportOrder(BaseModel):
+    metadata: dict
+    distance: Optional[float] = None
 
 
 def _run_ingest_background(csv_path: str, filename: str):
