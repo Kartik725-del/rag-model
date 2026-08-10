@@ -230,7 +230,31 @@ async def ingest_csv(file: UploadFile = File(...)):
 async def ingest_status():
     with _ingest_lock:
         return dict(_ingest_status)
-    
+@app.get("/api/stats")
+async def db_stats():
+    try:
+        collection = get_collection()
+        total      = collection.count()
+        sample     = collection.get(limit=min(total, 5000), include=["metadatas"])
+        metas      = sample["metadatas"]
+ 
+        buffer_counts, status_counts, route_counts = {}, {}, {}
+        for m in metas:
+            buf = m.get("buffer", "?");  
+            buffer_counts[buf] = buffer_counts.get(buf, 0) + 1
+            sta = m.get("status", "?");  
+            status_counts[sta] = status_counts.get(sta, 0) + 1
+            rt  = m.get("route",  "?");  
+            route_counts[rt]   = route_counts.get(rt,  0) + 1
+ 
+        return {
+            "total_orders":  total,
+            "buffer_counts": buffer_counts,
+            "status_counts": status_counts,
+            "top_routes":    dict(sorted(route_counts.items(), key=lambda x: -x[1])[:10]),
+        }
+    except Exception as e:
+        return JSONResponse(status_code=503, content={"error": str(e)}) 
 @app.post("/api/export")
 async def export_heat(req: ExportRequest):
     if not req.orders:
@@ -255,16 +279,13 @@ async def export_heat(req: ExportRequest):
         return '"' + v.replace('"', '""') + '"' if any(c in v for c in [",", '"', "\n"]) else v
  
     csv_text = "\n".join(",".join(csv_escape(c) for c in row) for row in rows)
- 
     # Basic audit trail — swap for a DB row / log file if you need persistence.
     print(f"[EXPORT] {heat_id} — {len(req.orders)} orders — query: {req.query!r}")
- 
     return StreamingResponse(
         io.StringIO(csv_text),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={heat_id}.csv"},
     )
-
 @app.get("/logo.png")
 async def serve_logo():
     return FileResponse(LOGO_PATH)
