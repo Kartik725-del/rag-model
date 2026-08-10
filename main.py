@@ -230,26 +230,12 @@ async def ingest_csv(file: UploadFile = File(...)):
 async def ingest_status():
     with _ingest_lock:
         return dict(_ingest_status)
-
-@app.get("/api/export")
-async def export_heat(heat_id: str = Query(default="HEAT-EXPORT")):
-    rows = [
-        "heat_id,order_id,grade,width_mm,thick_mm,mass_mt,buffer,status,route",
-        f"{heat_id},EXAMPLE-001,T01576,1460,2.5,258,R,O,HR_DOM",
-    ]
-    return StreamingResponse(
-        io.StringIO("\n".join(rows)),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={heat_id}.csv"},
-    )
-
-app.post("/api/export")
+    
+@app.post("/api/export")
 async def export_heat(req: ExportRequest):
     if not req.orders:
         raise HTTPException(status_code=400, detail="No orders provided to export.")
- 
     heat_id = req.heat_id or f"HEAT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
- 
     header = ["heat_id", "query", "order_id", "grade", "width_mm", "thick_mm",
               "mass_mt", "buffer", "status", "route", "steel_type", "week", "similarity_pct"]
     rows = [header]
