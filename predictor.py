@@ -30,7 +30,7 @@ COLLECTION        = "steel_orders"
 TOP_K             = 15
 EMBED_MODEL       = os.environ.get("EMBED_MODEL",       "all-MiniLM-L6-v2")
 OLLAMA_HOST       = os.environ.get("OLLAMA_HOST",       "http://localhost:11434")
-OLLAMA_CHAT_MODEL = os.environ.get("OLLAMA_CHAT_MODEL", "llama3")
+OLLAMA_CHAT_MODEL = os.environ.get("OLLAMA_CHAT_MODEL", "llama3.1:8b")
 
 # ── LAZY SINGLETONS ───────────────────────────────────────────────────────────
 _embed_model = None

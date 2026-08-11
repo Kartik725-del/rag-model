@@ -53,7 +53,7 @@ The system enforces hard steelmaking constraints in its prompt (single steel typ
 | Backend API       | [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn |
 | Vector store      | [ChromaDB](https://www.trychroma.com/) (persistent, local) |
 | Embeddings        | [sentence-transformers](https://www.sbert.net/) (`all-MiniLM-L6-v2` by default) |
-| LLM inference     | [Ollama](https://ollama.com/) (local model, e.g. `llama3`) |
+| LLM inference     | [Ollama](https://ollama.com/) (local model, e.g. `llama3.1:8b.1:8b`) |
 | Data processing   | pandas, numpy |
 | Frontend          | Single-page HTML/CSS/vanilla JS UI (no build step) |
 
@@ -75,7 +75,7 @@ The system enforces hard steelmaking constraints in its prompt (single steel typ
 ## Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.com/) installed and running locally, with a chat model pulled (e.g. `ollama pull llama3`)
+- [Ollama](https://ollama.com/) installed and running locally, with a chat model pulled (e.g. `ollama pull llama3.1:8b.1:8b`)
 - A CSV of mill order data (see [Data Format](#data-format) below)
 
 ## Getting Started
@@ -102,7 +102,7 @@ Create a `.env` file in the project root:
 ```env
 EMBED_MODEL=all-MiniLM-L6-v2
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_CHAT_MODEL=llama3
+OLLAMA_CHAT_MODEL=llama3.1:8b.1:8b
 ```
 
 ### 4. Add your orders data
