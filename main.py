@@ -31,7 +31,6 @@ _ingest_status: dict = {
     "filename": "",
 }
 _ingest_lock = threading.Lock()
-
 class ExportOrder(BaseModel):
     metadata: dict
     distance: Optional[float] = None
