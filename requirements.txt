@@ -1,10 +1,10 @@
-fastapi==0.111.0              # API server — routes, request/response handling
-uvicorn[standard]==0.29.0     # ASGI server that runs FastAPI
-python-multipart==0.0.9       # Needed for file uploads (CSV drag-and-drop)
-chromadb==0.5.0               # Local persistent vector database
-requests==2.32.3              # HTTP client for Ollama REST API calls
-sentence-transformers>=2.7.0  # Local embedding model (all-MiniLM-L6-v2)
-pandas==2.2.2                 # CSV loading, cleaning, groupby operations
-numpy==1.26.4                 # Numerical ops (used internally by chromadb)
-python-dotenv==1.0.1          # Load OLLAMA_HOST / OLLAMA_CHAT_MODEL from .env
-pydantic==2.7.1               # Request/response data validation (built into FastAPI)
+fastapi==0.111.0             
+uvicorn[standard]==0.29.0     
+python-multipart==0.0.9      
+chromadb==0.5.0               
+requests==2.32.3              
+sentence-transformers>=2.7.0 
+pandas==2.2.2                 
+numpy==1.26.4                 
+python-dotenv==1.0.1         
+pydantic==2.7.1              
